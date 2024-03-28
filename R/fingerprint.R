@@ -36,6 +36,7 @@
 ## @param unsupported return value from `sub_unsupported` (see norm_unsupported)
 ## @param add whether new symbols should be added to the symbol mapping (set to
 ##   FALSE if formals already specified).
+## @return named list of original symbols (names) and remapped symbol as values.
 
 normalize_calls <- function(call, formals, unsupported) {
   sym.map <- norm_formals(formals)
@@ -45,15 +46,17 @@ normalize_calls <- function(call, formals, unsupported) {
     norm_unsupported(unsupported, tmp[['map']], add=is.null(formals))
   list(call=call, map=tmp[['map']], unsupported=tmp[['unsupported']])
 }
-
 norm_formals <- function(formals) {
   if(!is.null(formals)) {
     formals <- formals_to_chr(formals)
     dots <- formals == "..."
     formals.no.dot <- formals[!dots]
-    map <- vector("list", length(formals.no.dot))
+    map <- lapply(
+      seq_along(formals.no.dot),
+      function(i) as.name(paste0(NORM.ARG.BASE, i))
+    )
     names(map) <- formals.no.dot
-    map[!dots] <- lapply(formals.no.dot, as.name)
+    map
   } else structure(list(), names=character())
 }
 norm_symbols_rec <- function(call, map, unsupported, add) {
@@ -121,5 +124,10 @@ denorm_map <- function(map) {
   map.vals <- names(map)
   names(map.vals) <- map.names
   map.vals
+}
+# char version of symbol to character
+denorm_sym_as_chr <- function(name, map) {
+  map <- denorm_map(map)
+  if(name %in% names(map)) map[[name]] else map
 }
 

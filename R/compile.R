@@ -419,7 +419,10 @@ make_formals <- function(x, call, sym.free, sym.map) {
     # Free call symbols have been normalized, so we must undo
     map <- denorm_map(sym.map)
     x <- replicate(length(sym.free), alist(a=))
-    names(x) <- map[sym.free]
+    sym.orig <- sym.free
+    sym.free.map <- sym.free %in% names(map)
+    sym.orig[sym.free.map] <- map[sym.free[sym.free.map]]
+    names(x) <- sym.orig
   }
   if(any(formals.bad <- grepl(R2C.PRIV.RX, names(x)))) {
     stop(

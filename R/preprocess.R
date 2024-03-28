@@ -246,7 +246,7 @@ preprocess_n <- function(
   x.all
 }
 preprocess <- function(call, optimize=FALSE)
-  preprocess_n(list(call), optimize)[[1L]]
+  preprocess_n(list(call), optimize=optimize)[[1L]]
 
 # Recursion portion of preprocess
 #

@@ -374,7 +374,7 @@ alloc <- function(x, data, gmax, gmin, par.env, MoreArgs, .CALL) {
           # for external evals that correspond to iteration constant parameters.
           if(!arg.ext && !nzchar(argn))
             stop("Internal Error: missing arg name for external argument")
-          validate_ext(x, i, arg.e, name, call, .CALL)
+          validate_ext(x, i, arg.e, name, call, .CALL, x[['sym.map']])
           typeof <- typeof(arg.e)
           size.coef <- list(length(arg.e))
           vec.dat <- vec_dat(
@@ -1516,18 +1516,22 @@ name_to_id <- function(alloc, name) {
 }
 ## Check That External Vectors are OK
 
-validate_ext <- function(x, i, arg.e, name, call, .CALL) {
+validate_ext <- function(x, i, arg.e, name, call, .CALL, sym.map) {
   if(!is.num_naked(list(arg.e))) {
     # Next call, if any
     next.call.v <- which(seq_along(x[['call']]) > i & x[['is.call']])
     err.call <-
       if(length(next.call.v)) x[['call']][[next.call.v[1L]]]
       else call
+
+    name <- denorm_sym_as_chr(name, sym.map)
     stop(
       simpleError(
         paste0(
-          "External argument `", name, "` for `", deparse1(err.call),
-          "` is not unclassed numeric ", not_num_naked_err(name, arg.e), "."
+          "External argument `", name, "` for `",
+          deparse1(denorm_symbol(err.call, sym.map)),
+          "` is not unclassed numeric ",
+          not_num_naked_err(name, arg.e), "."
         ),
         .CALL
   ) ) }
