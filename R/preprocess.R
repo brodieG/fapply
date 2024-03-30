@@ -328,11 +328,14 @@ pp_internal <- function(
     # assure the order of evaluation so safer to just disallow.  We _could_
     # allow it but it just seems dangerous.
     if(next.assign && !passive) {
-      call.dep <- deparseLines(clean_call(call, level=2L))
-      msg <- sprintf(
-        "r2c disallows assignments inside arguments. Found: %s", call.dep
+      call.dep <- deparseLines(
+        clean_call(denorm_symbol(call, x[['sym.map']]), level=2L)
       )
-      stop(simpleError(msg, call.parent))
+      msg <- sprintf(
+        "r2c disallows assignments inside arguments. Found: %s",
+        call.dep
+      )
+      stop(simpleError(msg, denorm_symbol(call.parent, x[['sym.map']])))
     }
     for(i in seq_along(args)) {
       x <- pp_internal(
