@@ -347,9 +347,9 @@ alloc <- function(x, data, gmax, gmin, par.env, MoreArgs, .CALL) {
           arg.e <- eval(call, envir=alloc[[NM.ENV.VAR]]),
           error=function(e) stop(simpleError(conditionMessage(e), call.outer)),
           "r2c-internalSymAccess"=function(e)
-            varying_err(e, call, call.outer, par.icnst),
+            varying_err(e, call, call.outer, par.icnst, x[['sym.map']]),
           "r2c-computedConstant"=function(e)
-            varying_err(e, call, call.outer, par.icnst)
+            varying_err(e, call, call.outer, par.icnst, x[['sym.map']])
         )
         # Validated external args even if they resolve to an internal id
         if(
@@ -1481,8 +1481,8 @@ unguard_symbol <- function(name, value, env) {
   env[[name]] <- value
   env
 }
-varying_err <- function(e, call, call.outer, par.icnst) {
-  call.dep <- deparseLines(call)
+varying_err <- function(e, call, call.outer, par.icnst, sym.map) {
+  call.dep <- deparseLines(denorm_symbol(call, sym.map))
   err.head <-
     if(par.icnst) 'Constant parameter expression'
     else 'Unimplemented function call'
@@ -1499,9 +1499,10 @@ varying_err <- function(e, call, call.outer, par.icnst) {
         if(grepl("\n", call.dep)) paste0("\n:", call.dep, "\n")
         else paste0(" `", call.dep, "` "),
         "attempted to access ", err.msg, " `",
-        conditionMessage(e), "`.  See `?'r2c-expression-types'."
+        denorm_sym_as_chr(conditionMessage(e), sym.map),
+        "`.  See `?'r2c-expression-types'."
       ),
-      call.outer
+      denorm_symbol(call.outer, sym.map)
   ) )
 }
 ## Lookup a Name In Storage List

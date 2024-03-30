@@ -94,8 +94,10 @@ norm_unsupported <- function(unsupported, map, add) {
     tmp <- norm_symbols_rec(ui[['call']], map, unsupported, add)
     ui[['call']] <- tmp[['call']]
     map <- tmp[['map']]
-    ui[['syms']] <-
-      as.vector(vapply(ui[['syms']], function(x) as.character(map[[x]]), ""))
+    ui.in.map <- ui[['syms']] %in% names(map)
+    ui[['syms']][ui.in.map] <- as.vector(
+      vapply(ui[['syms']][ui.in.map], function(x) as.character(map[[x]]), "")
+    )
     unsupported[[i]] <- ui
   }
   list(unsupported=unsupported, map=map)
@@ -128,6 +130,6 @@ denorm_map <- function(map) {
 # char version of symbol to character
 denorm_sym_as_chr <- function(name, map) {
   map <- denorm_map(map)
-  if(name %in% names(map)) map[[name]] else map
+  if(name %in% names(map)) map[[name]] else name
 }
 
