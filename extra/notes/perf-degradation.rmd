@@ -1,0 +1,37 @@
+# Performance Degradation
+
+> Turns out this was because we were running the x86_64 version on R.
+
+Switching to R-devel (2023-10-04 r85265) causes substantial performance
+degradation on Mac OS Arm ~10x.
+
+    library(r2c)
+    set.seed(1)
+    n <- 1e7
+    gn <- 10
+    ng <- n/gn
+    x <- runif(n) * runif(n)  # full 64 bit precision randomness
+    y <- runif(n) * runif(n)  # for later
+    # pre-sorted groups
+    g <- cumsum(sample(c(TRUE, rep(FALSE, gn - 1)), n, replace=TRUE))
+    system.time(g.r2c <- process_groups(g, sorted=TRUE))
+    ##  user  system elapsed
+    ## 0.015   0.002   0.016
+
+    r2c_sum <- r2cq(sum(x))
+    system.time(sum.r2c <- group_exec(r2c_sum, x, g.r2c))
+    ##   user  system elapsed
+    ##  0.417   0.006   0.424
+
+Vs in 4.3.1:
+
+    ##   user  system elapsed 
+    ##  0.036   0.002   0.039 
+
+Let's try getting the latest R-devel.  Persists in -r85355.
+
+Let's get some traces.
+
+    r2c_sum <- r2cq(sum(x), dir='.')
+    for(i in 1:100) group_exec(r2c_sum, x, g.r2c)
+    system.time(group_exec(r2c_sum, x, g.r2c))

@@ -1,0 +1,135 @@
+# Loop Benchmarks
+
+    library(Rcpp)
+    RcppFib0 <- cppFunction('int fib(int n) {
+      int fib = 1;
+      for(int i = 1; i <= n; ++i) {
+        if(i > 2) fib = fib + i;
+        else if(i == 2) fib = 3;
+        else if(i == 1) fib = 1;
+      }
+      return fib;
+    }')
+    RcppFib1 <- cppFunction('int fib(int n) {
+      int fib = 1;
+      if(n > 2) fib = 3;
+      if(n >= 2) {
+        for(int i = 3; i <= n; ++i) {
+          fib += i;
+        }
+      }
+      return fib;
+    }')
+
+    library(r2c)
+    f0 <-function(n, x) {
+      fib <- 1
+      for(i in seq_len(n)) {
+        if(i > 2) fib <- fib + i
+        else if(i == 2) fib <- 3
+        else if(i == 1) fib <- 1
+      }
+      fib
+    }
+    r2cFib0 <- r2cf(f0)
+    f1 <- function(n, x) {
+      fib <- 1
+      if(n >= 2) fib <- 3
+      if(n > 2) {
+        for(i in seq_len(n - 2) + 2) {
+          fib <- fib + i
+        }
+      }
+      fib
+    }
+    r2cFib1 <- r2cf(f1)
+
+    # ----
+
+    n <- 1e7
+    microbenchmark::microbenchmark(times=10, unit='microsecond',
+      group_exec(r2cFib0,1,1,MoreArgs=list(n=n)),
+      group_exec(r2cFib1,1,1,MoreArgs=list(n=n)),
+      f0(n),
+      f1(n),
+      RcppFib0(n),
+      RcppFib1(n)
+    )
+
+    ## Unit: microseconds
+    ##                                               expr        min        lq
+    ##  group_exec(r2cFib0, 1, 1, MoreArgs = list(n = n))  88644.665  88805.75
+    ##  group_exec(r2cFib1, 1, 1, MoreArgs = list(n = n))  74553.949  75405.81
+    ##                                              f0(n) 148067.318 150118.30
+    ##                                              f1(n)  87378.790  89590.08
+    ##                                        RcppFib0(n)      1.394      2.13
+    ##                                        RcppFib1(n)      0.902      1.89
+    ##       mean    median        uq       max neval
+    ##   94509.65  91037.51  92924.57 127873.10    10
+    ##   90041.98  78217.91 110788.81 111580.19    10
+    ##  149981.57 150189.58 150283.78 150290.79    10
+    ##  106166.60  91712.29  92883.61 210026.11    10
+    ##       5.23      5.66      6.56     12.05    10
+    ##       4.60      5.41      6.64      6.93    10
+
+
+Looks like Rcpp is finding a closed form solution to the problem.  Also there
+seems to be significant overhead for `r2c` as seen with smaller sizes.
+
+    n <- 1e5
+    microbenchmark::microbenchmark(times=10, unit='microseconds',
+      group_exec(r2cFib0,1,1,MoreArgs=list(n=n)),
+      group_exec(r2cFib1,1,1,MoreArgs=list(n=n)),
+      f0(n),
+      f1(n),
+      RcppFib0(n),
+      RcppFib1(n)
+    )
+    ## Unit: microseconds
+    ##                                               expr      min      lq    mean
+    ##  group_exec(r2cFib0, 1, 1, MoreArgs = list(n = n)) 8726.563 8748.25 9212.20
+    ##  group_exec(r2cFib1, 1, 1, MoreArgs = list(n = n)) 7839.200 7859.95 8776.39
+    ##                                              f0(n) 1448.735 1452.30 1480.30
+    ##                                              f1(n)  848.864  854.11  887.60
+    ##                                        RcppFib0(n)    0.861    1.19    1.96
+    ##                                        RcppFib1(n)    0.820    1.35    1.68
+    ##   median      uq      max neval
+    ##  8825.52 9502.32 10596.57    10
+    ##  8078.37 9329.10 12762.93    10
+    ##  1453.86 1480.10  1644.88    10
+    ##   867.05  919.10   968.99    10
+    ##     1.74    2.17     4.14    10
+    ##     1.66    1.84     3.32    10
+
+So about 8 milliseconds overhead, all in `alloc`.
+
+    Ticks: 2183; Iterations: 577; Time Per: 8.825 milliseconds; Time Total: 5.092 seconds; Time Ticks: 2.183
+
+                                              microseconds
+    group_exec ------------------------------ : 8825 -   0
+        group_exec_int ---------------------- : 8000 -   4
+        |   match_and_alloc ----------------- : 7430 -   4
+        |   |   alloc ----------------------- : 7382 - 562
+        |   |       lapply ------------------ : 1322 -  53
+        |   |       %in% -------------------- : 1063 - 570
+        |   |       append_dat -------------- :  869 -  89
+        |   |       append_stack ------------ :  558 -  65
+        |   |       reconcile_control_flow -- :  493 -  32
+        |   |       grepl ------------------- :  364 - 364
+        |   |       compute_size ------------ :  360 -  49
+        |   |       alloc_free -------------- :  340 - 340
+        |   |       check_fun --------------- :  263 -  32
+        |   |       names_clean ------------- :  251 - 226
+        |   |       append_call_dat --------- :  178 -  97
+        |   |       latest_symbol_instance -- :  170 -   0
+        |   |       vec_dat ----------------- :  162 -  12
+        |   |       name_bind_if_assign ----- :   81 -  16
+        |   |       tryCatch ---------------- :   65 -  65
+        |   load_dynlib --------------------- :  493 -   0
+        |   |   file.exists ----------------- :  493 - 493
+        |   run_group_int ------------------- :   44 -  44
+        get_r2c_dat ------------------------- :  792 -   0
+            utils::packageVersion ----------- :  776 -   0
+                suppressWarnings ------------ :  760 -   0
+                    withCallingHandlers ----- :  760 -   0
+

@@ -1,0 +1,14 @@
+# r2c fun library
+
+Most basic format would be to `saveRDS` a list of objects.  These could then be
+reloaded and...?
+
+Scenarios:
+
+* As part of a package.  Would require `on.load` to find the dll files?  So we
+  need file storage, which can just be in the `inst` folder?  Not that
+  straightforward b/c the binaries needs to be generated at install or build
+  time, so they can't exist.  
+
+  be at build time.  How do we distinguish build vs install time?
+* On the workspace.
